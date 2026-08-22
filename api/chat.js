@@ -1,50 +1,44 @@
-export const config = {
-  runtime: 'edge',
-};
+module.exports = async (req, res) => {
+  // Set CORS headers
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
-export default async function handler(req) {
-  // Direct CORS response Headers
-  const corsHeaders = {
-    'Access-Control-Allow-Credentials': 'true',
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET,OPTIONS,PATCH,DELETE,POST,PUT',
-    'Access-Control-Allow-Headers':
-      'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization',
-  };
-
-  // Tangani Preflight OPTIONS dari browser
+  // Handle Preflight OPTIONS
   if (req.method === 'OPTIONS') {
-    return new Response(null, {
-      status: 200,
-      headers: corsHeaders,
-    });
+    res.writeHead(200);
+    return res.end();
   }
 
   if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method not allowed.' }), {
-      status: 405,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    res.writeHead(405, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({ error: 'Method not allowed.' }));
   }
 
   try {
     const apiKey = process.env.GEMINI_API_KEY;
 
     if (!apiKey) {
-      return new Response(
-        JSON.stringify({ error: 'GEMINI_API_KEY belum dipasang di Vercel.' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ error: 'GEMINI_API_KEY belum dipasang di Vercel.' }));
     }
 
-    const body = await req.json().catch(() => ({}));
-    const { messages } = body;
+    // Read body buffer/string safely
+    let body = req.body;
+    if (typeof body === 'string') {
+      try {
+        body = JSON.parse(body);
+      } catch (e) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ error: 'JSON body tidak valid.' }));
+      }
+    }
+
+    const { messages } = body || {};
 
     if (!Array.isArray(messages) || messages.length === 0) {
-      return new Response(
-        JSON.stringify({ error: 'Messages tidak valid.' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ error: 'Messages tidak valid.' }));
     }
 
     const safeMessages = messages
@@ -59,7 +53,7 @@ export default async function handler(req) {
 
     const contents = safeMessages.map((m) => ({
       role: m.role,
-      parts: [{ text: m.text.trim() }],
+      parts: [{ text: m.text.trim() }]
     }));
 
     const geminiResponse = await fetch(
@@ -67,35 +61,26 @@ export default async function handler(req) {
       {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ contents }),
+        body: JSON.stringify({ contents })
       }
     );
 
     const data = await geminiResponse.json();
 
     if (!geminiResponse.ok) {
-      return new Response(
-        JSON.stringify({ error: data?.error?.message || 'Gemini API gagal.' }),
-        {
-          status: geminiResponse.status,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
+      res.writeHead(geminiResponse.status || 500, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ error: data?.error?.message || 'Gemini API gagal.' }));
     }
 
     const parts = data?.candidates?.[0]?.content?.parts;
     const text = Array.isArray(parts) ? parts.map((p) => p.text || '').join('').trim() : '';
 
-    return new Response(JSON.stringify({ text }), {
-      status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({ text }));
   } catch (error) {
-    return new Response(
-      JSON.stringify({ error: error?.message || 'Server Internal Error' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    res.writeHead(500, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({ error: error?.message || 'Server Internal Error' }));
   }
-}
+};
