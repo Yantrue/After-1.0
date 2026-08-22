@@ -1,5 +1,4 @@
 module.exports = async (req, res) => {
-  // Set CORS Headers
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
@@ -8,7 +7,6 @@ module.exports = async (req, res) => {
     'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization'
   );
 
-  // Tangani Preflight OPTIONS dari Browser
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
@@ -46,8 +44,9 @@ module.exports = async (req, res) => {
       parts: [{ text: m.text.trim() }]
     }));
 
+    // Menggunakan model gemini-3.6-flash terbaru
     const geminiResponse = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
