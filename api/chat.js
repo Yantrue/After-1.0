@@ -1,6 +1,8 @@
+const https = require('https');
+
 module.exports = async (req, res) => {
-  // Set header CORS manual di paling atas
-  res.setHeader('Access-Control-Allow-Credentials', true);
+  // Selalu set header CORS di paling atas
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
   res.setHeader(
@@ -8,7 +10,7 @@ module.exports = async (req, res) => {
     'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization'
   );
 
-  // Tangani Preflight Request (OPTIONS)
+  // Tangani Preflight OPTIONS langsung return 200 OK
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
@@ -46,30 +48,52 @@ module.exports = async (req, res) => {
       parts: [{ text: message.text.trim() }]
     }));
 
-    const geminiResponse = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-goog-api-key': apiKey
-        },
-        body: JSON.stringify({ contents })
+    const payload = JSON.stringify({ contents });
+
+    const options = {
+      hostname: 'generativelanguage.googleapis.com',
+      path: `/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(payload)
       }
-    );
+    };
 
-    const data = await geminiResponse.json();
+    const apiRequest = https.request(options, (apiRes) => {
+      let responseData = '';
 
-    if (!geminiResponse.ok) {
-      return res.status(geminiResponse.status).json({
-        error: data?.error?.message || 'Gemini API gagal.'
+      apiRes.on('data', (chunk) => {
+        responseData += chunk;
       });
-    }
 
-    const parts = data?.candidates?.[0]?.content?.parts;
-    const text = Array.isArray(parts) ? parts.map((p) => p.text || '').join('').trim() : '';
+      apiRes.on('end', () => {
+        try {
+          const parsedData = JSON.parse(responseData);
 
-    return res.status(200).json({ text });
+          if (apiRes.statusCode !== 200) {
+            return res.status(apiRes.statusCode).json({
+              error: parsedData?.error?.message || 'Gemini API gagal.'
+            });
+          }
+
+          const parts = parsedData?.candidates?.[0]?.content?.parts;
+          const text = Array.isArray(parts) ? parts.map((p) => p.text || '').join('').trim() : '';
+
+          return res.status(200).json({ text });
+        } catch (e) {
+          return res.status(500).json({ error: 'Gagal parse JSON dari Gemini.' });
+        }
+      });
+    });
+
+    apiRequest.on('error', (err) => {
+      return res.status(500).json({ error: err.message || 'Request Error' });
+    });
+
+    apiRequest.write(payload);
+    apiRequest.end();
+
   } catch (error) {
     return res.status(500).json({ error: error?.message || 'Server Internal Error' });
   }
