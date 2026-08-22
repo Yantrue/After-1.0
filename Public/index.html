@@ -14,7 +14,7 @@
     rel="stylesheet"
   >
 
-  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="./style.css">
 </head>
 
 <body>
@@ -41,6 +41,7 @@
         id="clearBtn"
         type="button"
         title="Percakapan baru"
+        aria-label="Percakapan baru"
       >
         <span></span>
         <span></span>
@@ -62,7 +63,6 @@
 
         <p>Ask After 1.0 anything.</p>
 
-
         <div class="suggestions">
 
           <button
@@ -79,7 +79,6 @@
             </span>
           </button>
 
-
           <button
             class="suggestion"
             type="button"
@@ -93,7 +92,6 @@
               Buatkan rencana belajar yang jelas
             </span>
           </button>
-
 
           <button
             class="suggestion"
@@ -117,6 +115,7 @@
       <section
         class="messages"
         id="messages"
+        aria-live="polite"
       ></section>
 
     </main>
@@ -136,18 +135,17 @@
           autocomplete="off"
         ></textarea>
 
-
         <div class="composer-footer">
 
           <span class="composer-hint">
             Enter untuk kirim
           </span>
 
-
           <button
             class="send-btn"
             id="sendBtn"
             type="submit"
+            aria-label="Kirim pesan"
           >
             ↑
           </button>
@@ -155,7 +153,6 @@
         </div>
 
       </form>
-
 
       <p class="disclaimer">
         After 1.0 can make mistakes. Check important information.
@@ -165,8 +162,7 @@
 
   </div>
 
-
-  <script src="/script.js"></script>
+  <script src="./script.js"></script>
 
 </body>
 </html>
