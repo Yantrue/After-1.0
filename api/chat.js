@@ -1,5 +1,14 @@
 module.exports = async (req, res) => {
-  // Tangani Preflight OPTIONS dari browser
+  // Set header CORS manual di paling atas
+  res.setHeader('Access-Control-Allow-Credentials', true);
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+  res.setHeader(
+    'Access-Control-Allow-Headers',
+    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization'
+  );
+
+  // Tangani Preflight Request (OPTIONS)
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
@@ -15,7 +24,6 @@ module.exports = async (req, res) => {
       return res.status(500).json({ error: 'GEMINI_API_KEY belum dipasang di Vercel.' });
     }
 
-    // Parsing body request
     const body = typeof req.body === 'string' ? JSON.parse(req.body) : (req.body || {});
     const { messages } = body;
 
