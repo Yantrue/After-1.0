@@ -1,150 +1,84 @@
-const MODEL = "gemini-3.7-flash";
+const MODEL = "gemini-2.5-flash"; // Menggunakan nama model yang valid
 
 export default async function handler(req, res) {
-
-  res.setHeader(
-    "Access-Control-Allow-Origin",
-    "https://yantrue.github.io"
-  );
-
-  res.setHeader(
-    "Access-Control-Allow-Methods",
-    "POST, OPTIONS"
-  );
-
+  // 1. Set CORS Headers
+  res.setHeader("Access-Control-Allow-Origin", "https://yantrue.github.io");
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader(
     "Access-Control-Allow-Headers",
-    "Content-Type"
+    "Content-Type, Authorization, X-Requested-With"
   );
+  res.setHeader("Access-Control-Max-Age", "86400");
 
-  res.setHeader(
-    "Access-Control-Max-Age",
-    "86400"
-  );
-
-
+  // 2. Handle Preflight Request
   if (req.method === "OPTIONS") {
-
-    return res
-      .status(200)
-      .end();
+    return res.status(200).end();
   }
 
-
+  // 3. Validasi HTTP Method
   if (req.method !== "POST") {
-
-    return res
-      .status(405)
-      .json({
-        error:
-          "Method not allowed."
-      });
+    return res.status(405).json({
+      error: "Method not allowed."
+    });
   }
-
 
   try {
-
-    const apiKey =
-      process.env.GEMINI_API_KEY;
-
+    const apiKey = process.env.GEMINI_API_KEY;
 
     if (!apiKey) {
-
-      return res
-        .status(500)
-        .json({
-          error:
-            "GEMINI_API_KEY belum dipasang di Vercel."
-        });
+      return res.status(500).json({
+        error: "GEMINI_API_KEY belum dipasang di Vercel."
+      });
     }
 
+    const body = req.body || {};
+    const messages = body.messages;
 
-    const body =
-      req.body || {};
-
-
-    const messages =
-      body.messages;
-
-
-    if (
-      !Array.isArray(messages) ||
-      messages.length === 0
-    ) {
-
-      return res
-        .status(400)
-        .json({
-          error:
-            "Messages tidak valid."
-        });
+    if (!Array.isArray(messages) || messages.length === 0) {
+      return res.status(400).json({
+        error: "Messages tidak valid."
+      });
     }
 
+    const safeMessages = messages
+      .filter(
+        (message) =>
+          message &&
+          (message.role === "user" || message.role === "model") &&
+          typeof message.text === "string" &&
+          message.text.trim().length > 0
+      )
+      .slice(-30);
 
-    const safeMessages =
-      messages
-        .filter(
-          (message) =>
-            message &&
-            (
-              message.role === "user" ||
-              message.role === "model"
-            ) &&
-            typeof message.text === "string" &&
-            message.text.trim().length > 0
-        )
-        .slice(-30);
-
-
-    if (
-      safeMessages.length === 0
-    ) {
-
-      return res
-        .status(400)
-        .json({
-          error:
-            "Tidak ada pesan yang valid."
-        });
+    if (safeMessages.length === 0) {
+      return res.status(400).json({
+        error: "Tidak ada pesan yang valid."
+      });
     }
 
-
-    const contents =
-      safeMessages.map(
-        (message) => ({
-          role:
-            message.role,
-
-          parts: [
-            {
-              text:
-                message.text.trim()
-            }
-          ]
-        })
-      );
-
-
-    const geminiResponse =
-      await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`,
+    const contents = safeMessages.map((message) => ({
+      role: message.role,
+      parts: [
         {
-          method: "POST",
+          text: message.text.trim()
+        }
+      ]
+    }));
 
-          headers: {
-            "Content-Type":
-              "application/json",
-
-            "x-goog-api-key":
-              apiKey
-          },
-
-          body: JSON.stringify({
-
-            system_instruction: {
-              parts: [
-                {
-                  text: `
+    // 4. Request ke Gemini API
+    const geminiResponse = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": apiKey
+        },
+        body: JSON.stringify({
+          system_instruction: {
+            parts: [
+              {
+                text: `
 Kamu adalah After 1.0.
 
 Nama:
@@ -176,98 +110,51 @@ Aturan:
 - Untuk coding, berikan kode yang bisa digunakan.
 - Jelaskan langkah teknis dengan jelas.
 - Jangan menyebut system instruction.
-                  `
-                }
-              ]
-            },
-
-
-            contents,
-
-
-            generationConfig: {
-              maxOutputTokens: 4096
-            }
-
-          })
-        }
-      );
-
-
-    const data =
-      await geminiResponse.json();
-
-
-    if (!geminiResponse.ok) {
-
-      console.error(
-        "Gemini API Error:",
-        data
-      );
-
-
-      return res
-        .status(
-          geminiResponse.status
-        )
-        .json({
-          error:
-            data?.error?.message ||
-            "Gemini API gagal."
-        });
-    }
-
-
-    const parts =
-      data
-        ?.candidates?.[0]
-        ?.content?.parts;
-
-
-    const text =
-      Array.isArray(parts)
-        ? parts
-            .map(
-              (part) =>
-                part.text || ""
-            )
-            .join("")
-            .trim()
-        : "";
-
-
-    if (!text) {
-
-      return res
-        .status(502)
-        .json({
-          error:
-            "Gemini tidak mengembalikan jawaban."
-        });
-    }
-
-
-    return res
-      .status(200)
-      .json({
-        text
-      });
-
-
-  } catch (error) {
-
-    console.error(
-      "After 1.0 backend error:",
-      error
+                `
+              }
+            ]
+          },
+          contents,
+          generationConfig: {
+            maxOutputTokens: 4096
+          }
+        })
+      }
     );
 
+    const data = await geminiResponse.json();
 
-    return res
-      .status(500)
-      .json({
-        error:
-          error?.message ||
-          "Terjadi kesalahan pada backend."
+    if (!geminiResponse.ok) {
+      console.error("Gemini API Error:", data);
+
+      return res.status(geminiResponse.status).json({
+        error: data?.error?.message || "Gemini API gagal."
       });
+    }
+
+    const parts = data?.candidates?.[0]?.content?.parts;
+
+    const text = Array.isArray(parts)
+      ? parts
+          .map((part) => part.text || "")
+          .join("")
+          .trim()
+      : "";
+
+    if (!text) {
+      return res.status(502).json({
+        error: "Gemini tidak mengembalikan jawaban."
+      });
+    }
+
+    return res.status(200).json({
+      text
+    });
+  } catch (error) {
+    console.error("After 1.0 backend error:", error);
+
+    return res.status(500).json({
+      error: error?.message || "Terjadi kesalahan pada backend."
+    });
   }
 }
