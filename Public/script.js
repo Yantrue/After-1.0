@@ -1,13 +1,23 @@
-const chatForm = document.getElementById("chatForm");
-const messageInput = document.getElementById("messageInput");
-const messages = document.getElementById("messages");
+const chatForm =
+  document.getElementById("chatForm");
 
-const welcome = document.getElementById("welcome");
+const messageInput =
+  document.getElementById("messageInput");
 
-const sendBtn = document.getElementById("sendBtn");
+const messages =
+  document.getElementById("messages");
 
-const clearBtn = document.getElementById("clearBtn");
-const newChatBtn = document.getElementById("newChatBtn");
+const welcome =
+  document.getElementById("welcome");
+
+const sendBtn =
+  document.getElementById("sendBtn");
+
+const clearBtn =
+  document.getElementById("clearBtn");
+
+const newChatBtn =
+  document.getElementById("newChatBtn");
 
 const suggestions =
   document.querySelectorAll(".suggestion");
@@ -18,9 +28,7 @@ let conversation = [];
 let isSending = false;
 
 
-/* -------------------------
-   TEXTAREA
-------------------------- */
+/* RESIZE TEXTAREA */
 
 function resizeTextarea() {
 
@@ -35,15 +43,19 @@ function resizeTextarea() {
 }
 
 
-messageInput.addEventListener(
-  "input",
-  resizeTextarea
-);
+/* SCROLL */
+
+function scrollToBottom() {
+
+  window.scrollTo({
+    top: document.body.scrollHeight,
+    behavior: "smooth"
+  });
+
+}
 
 
-/* -------------------------
-   MESSAGE
-------------------------- */
+/* USER MESSAGE */
 
 function addUserMessage(text) {
 
@@ -68,11 +80,12 @@ function addUserMessage(text) {
 
   messages.appendChild(message);
 
-
   scrollToBottom();
 
 }
 
+
+/* AI MESSAGE */
 
 function addAIMessage(text) {
 
@@ -109,11 +122,12 @@ function addAIMessage(text) {
 
   messages.appendChild(message);
 
-
   scrollToBottom();
 
 }
 
+
+/* LOADING */
 
 function addLoading() {
 
@@ -159,7 +173,6 @@ function addLoading() {
 
   messages.appendChild(message);
 
-
   scrollToBottom();
 
 }
@@ -179,23 +192,7 @@ function removeLoading() {
 }
 
 
-/* -------------------------
-   SCROLL
-------------------------- */
-
-function scrollToBottom() {
-
-  window.scrollTo({
-    top: document.body.scrollHeight,
-    behavior: "smooth"
-  });
-
-}
-
-
-/* -------------------------
-   SEND
-------------------------- */
+/* SEND */
 
 async function sendMessage(text) {
 
@@ -213,9 +210,7 @@ async function sendMessage(text) {
   sendBtn.disabled = true;
 
 
-  welcome.classList.add(
-    "hidden"
-  );
+  welcome.classList.add("hidden");
 
 
   addUserMessage(clean);
@@ -308,9 +303,7 @@ async function sendMessage(text) {
 }
 
 
-/* -------------------------
-   FORM
-------------------------- */
+/* FORM */
 
 chatForm.addEventListener(
   "submit",
@@ -326,9 +319,7 @@ chatForm.addEventListener(
 );
 
 
-/* -------------------------
-   ENTER
-------------------------- */
+/* ENTER */
 
 messageInput.addEventListener(
   "keydown",
@@ -349,9 +340,7 @@ messageInput.addEventListener(
 );
 
 
-/* -------------------------
-   SUGGESTIONS
-------------------------- */
+/* SUGGESTIONS */
 
 suggestions.forEach(
   (button) => {
@@ -360,10 +349,9 @@ suggestions.forEach(
       "click",
       () => {
 
-        const prompt =
-          button.dataset.prompt;
-
-        sendMessage(prompt);
+        sendMessage(
+          button.dataset.prompt
+        );
 
       }
     );
@@ -372,9 +360,7 @@ suggestions.forEach(
 );
 
 
-/* -------------------------
-   NEW CHAT
-------------------------- */
+/* NEW CHAT */
 
 function newChat() {
 
@@ -407,9 +393,12 @@ newChatBtn.addEventListener(
 );
 
 
-/* -------------------------
-   INIT
-------------------------- */
+/* INIT */
+
+messageInput.addEventListener(
+  "input",
+  resizeTextarea
+);
 
 resizeTextarea();
 
