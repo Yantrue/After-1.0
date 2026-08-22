@@ -44,13 +44,24 @@ module.exports = async (req, res) => {
       parts: [{ text: m.text.trim() }]
     }));
 
-    // Menggunakan model gemini-3.6-flash terbaru
+    // Payload dikirim bersama Instruksi Sistem agar selalu berbahasa Indonesia
+    const payload = {
+      contents,
+      systemInstruction: {
+        parts: [
+          {
+            text: 'Nama kamu adalah After 1.0, seorang asisten AI yang ramah, sopan, cerdas, dan selalu menjawab menggunakan Bahasa Indonesia yang baik dan mudah dipahami.'
+          }
+        ]
+      }
+    };
+
     const geminiResponse = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contents })
+        body: JSON.stringify(payload)
       }
     );
 
