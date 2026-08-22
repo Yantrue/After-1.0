@@ -1,5 +1,5 @@
-module.exports = (req, res) => {
-  // Set Header CORS
+module.exports = async (req, res) => {
+  // Set CORS Headers
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
@@ -8,53 +8,26 @@ module.exports = (req, res) => {
     'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization'
   );
 
-  // Tangani OPTIONS
   if (req.method === 'OPTIONS') {
-    if (typeof res.status === 'function') {
-      return res.status(200).end();
-    }
-    res.statusCode = 200;
-    return res.end();
+    return res.status(200).end();
   }
 
   if (req.method !== 'POST') {
-    if (typeof res.status === 'function') {
-      return res.status(405).json({ error: 'Method not allowed.' });
-    }
-    res.statusCode = 405;
-    res.setHeader('Content-Type', 'application/json');
-    return res.end(JSON.stringify({ error: 'Method not allowed.' }));
+    return res.status(405).json({ error: 'Method not allowed.' });
   }
-
-  const sendResponse = (statusCode, payload) => {
-    if (typeof res.status === 'function') {
-      return res.status(statusCode).json(payload);
-    }
-    res.statusCode = statusCode;
-    res.setHeader('Content-Type', 'application/json');
-    return res.end(JSON.stringify(payload));
-  };
 
   try {
     const apiKey = process.env.GEMINI_API_KEY;
 
     if (!apiKey) {
-      return sendResponse(500, { error: 'GEMINI_API_KEY belum dipasang di Vercel.' });
+      return res.status(500).json({ error: 'GEMINI_API_KEY belum dipasang di Vercel.' });
     }
 
-    let body = req.body;
-    if (typeof body === 'string') {
-      try {
-        body = JSON.parse(body);
-      } catch (e) {
-        return sendResponse(400, { error: 'Body JSON tidak valid.' });
-      }
-    }
-
-    const { messages } = body || {};
+    const body = typeof req.body === 'string' ? JSON.parse(req.body) : (req.body || {});
+    const { messages } = body;
 
     if (!Array.isArray(messages) || messages.length === 0) {
-      return sendResponse(400, { error: 'Messages tidak valid.' });
+      return res.status(400).json({ error: 'Messages tidak valid.' });
     }
 
     const safeMessages = messages
@@ -72,32 +45,28 @@ module.exports = (req, res) => {
       parts: [{ text: m.text.trim() }]
     }));
 
-    fetch(
+    const geminiResponse = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ contents })
       }
-    )
-      .then((geminiRes) => geminiRes.json().then((data) => ({ status: geminiRes.status, ok: geminiRes.ok, data })))
-      .then(({ status, ok, data }) => {
-        if (!ok) {
-          return sendResponse(status || 500, {
-            error: data?.error?.message || 'Gemini API gagal.'
-          });
-        }
+    );
 
-        const parts = data?.candidates?.[0]?.content?.parts;
-        const text = Array.isArray(parts) ? parts.map((p) => p.text || '').join('').trim() : '';
+    const data = await geminiResponse.json();
 
-        return sendResponse(200, { text });
-      })
-      .catch((err) => {
-        return sendResponse(500, { error: err.message || 'Fetch Gemini Error' });
+    if (!geminiResponse.ok) {
+      return res.status(geminiResponse.status).json({
+        error: data?.error?.message || 'Gemini API gagal.'
       });
+    }
 
+    const parts = data?.candidates?.[0]?.content?.parts;
+    const text = Array.isArray(parts) ? parts.map((p) => p.text || '').join('').trim() : '';
+
+    return res.status(200).json({ text });
   } catch (error) {
-    return sendResponse(500, { error: error?.message || 'Server Internal Error' });
+    return res.status(500).json({ error: error?.message || 'Server Internal Error' });
   }
 };
