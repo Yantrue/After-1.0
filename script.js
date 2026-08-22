@@ -1,35 +1,41 @@
-const chatForm = document.getElementById("chatForm");
-const messageInput = document.getElementById("messageInput");
-const messages = document.getElementById("messages");
+const chatForm =
+  document.getElementById("chatForm");
 
-const welcome = document.getElementById("welcome");
+const messageInput =
+  document.getElementById("messageInput");
 
-const sendBtn = document.getElementById("sendBtn");
-const clearBtn = document.getElementById("clearBtn");
-const newChatBtn = document.getElementById("newChatBtn");
+const messages =
+  document.getElementById("messages");
 
-const suggestions = document.querySelectorAll(".suggestion");
+const welcome =
+  document.getElementById("welcome");
+
+const sendBtn =
+  document.getElementById("sendBtn");
+
+const clearBtn =
+  document.getElementById("clearBtn");
+
+const newChatBtn =
+  document.getElementById("newChatBtn");
+
+const suggestions =
+  document.querySelectorAll(".suggestion");
+
 
 let conversation = [];
+
 let isSending = false;
-
-
-/*
-  GANTI URL DI BAWAH DENGAN URL VERCEL KAMU.
-
-  Contoh:
-  https://after-1-0.vercel.app/api/chat
-*/
-
-const API_URL =
-  "https://after-1-0.vercel.app/api/chat";
 
 
 function resizeTextarea() {
   messageInput.style.height = "auto";
 
   messageInput.style.height =
-    Math.min(messageInput.scrollHeight, 180) + "px";
+    Math.min(
+      messageInput.scrollHeight,
+      180
+    ) + "px";
 }
 
 
@@ -44,15 +50,26 @@ function scrollToBottom() {
 
 
 function addUserMessage(text) {
-  const message = document.createElement("div");
-  message.className = "message user";
 
-  const content = document.createElement("div");
-  content.className = "message-content";
+  const message =
+    document.createElement("div");
 
-  content.textContent = text;
+  message.className =
+    "message user";
+
+
+  const content =
+    document.createElement("div");
+
+  content.className =
+    "message-content";
+
+  content.textContent =
+    text;
+
 
   message.appendChild(content);
+
   messages.appendChild(message);
 
   scrollToBottom();
@@ -60,19 +77,36 @@ function addUserMessage(text) {
 
 
 function addAIMessage(text) {
-  const message = document.createElement("div");
-  message.className = "message ai";
 
-  const avatar = document.createElement("div");
-  avatar.className = "ai-avatar";
-  avatar.textContent = "A";
+  const message =
+    document.createElement("div");
 
-  const content = document.createElement("div");
-  content.className = "message-content";
+  message.className =
+    "message ai";
 
-  content.textContent = text;
+
+  const avatar =
+    document.createElement("div");
+
+  avatar.className =
+    "ai-avatar";
+
+  avatar.textContent =
+    "A";
+
+
+  const content =
+    document.createElement("div");
+
+  content.className =
+    "message-content";
+
+  content.textContent =
+    text;
+
 
   message.appendChild(avatar);
+
   message.appendChild(content);
 
   messages.appendChild(message);
@@ -82,19 +116,33 @@ function addAIMessage(text) {
 
 
 function addLoading() {
-  const message = document.createElement("div");
 
-  message.className = "message ai";
-  message.id = "loadingMessage";
+  const message =
+    document.createElement("div");
 
-  const avatar = document.createElement("div");
+  message.className =
+    "message ai";
 
-  avatar.className = "ai-avatar";
-  avatar.textContent = "A";
+  message.id =
+    "loadingMessage";
 
-  const content = document.createElement("div");
 
-  content.className = "message-content";
+  const avatar =
+    document.createElement("div");
+
+  avatar.className =
+    "ai-avatar";
+
+  avatar.textContent =
+    "A";
+
+
+  const content =
+    document.createElement("div");
+
+  content.className =
+    "message-content";
+
 
   content.innerHTML = `
     <div class="loading">
@@ -104,7 +152,9 @@ function addLoading() {
     </div>
   `;
 
+
   message.appendChild(avatar);
+
   message.appendChild(content);
 
   messages.appendChild(message);
@@ -114,45 +164,39 @@ function addLoading() {
 
 
 function removeLoading() {
-  const loading =
-    document.getElementById("loadingMessage");
 
-  if (loading) {
-    loading.remove();
-  }
+  document
+    .getElementById("loadingMessage")
+    ?.remove();
 }
 
 
 async function sendMessage(text) {
-  const clean = text.trim();
+
+  const clean =
+    text.trim();
+
 
   if (!clean || isSending) {
     return;
   }
 
-  if (
-    API_URL.includes("NAMA-PROJECT-KAMU")
-  ) {
-    addAIMessage(
-      "API belum dikonfigurasi.\n\n" +
-      "Buka script.js lalu ganti API_URL dengan URL Vercel kamu."
-    );
-
-    return;
-  }
-
 
   isSending = true;
+
   sendBtn.disabled = true;
 
   welcome.classList.add("hidden");
 
+
   addUserMessage(clean);
+
 
   conversation.push({
     role: "user",
     text: clean
   });
+
 
   messageInput.value = "";
 
@@ -163,39 +207,52 @@ async function sendMessage(text) {
 
   try {
 
-    const response = await fetch(
-      API_URL,
-      {
-        method: "POST",
+    const response =
+      await fetch(
+        "https://after-1-0.vercel.app/api/chat",
+        {
+          method: "POST",
 
-        headers: {
-          "Content-Type": "application/json",
-          "Accept": "application/json"
-        },
+          mode: "cors",
 
-        body: JSON.stringify({
-          messages: conversation
-        })
-      }
-    );
+          headers: {
+            "Content-Type":
+              "application/json",
+
+            "Accept":
+              "application/json"
+          },
+
+          body: JSON.stringify({
+            messages:
+              conversation
+          })
+        }
+      );
 
 
     const contentType =
-      response.headers.get("content-type") || "";
+      response.headers.get(
+        "content-type"
+      ) || "";
 
 
-    if (!contentType.includes("application/json")) {
+    if (
+      !contentType
+        .toLowerCase()
+        .includes("application/json")
+    ) {
 
-      const html = await response.text();
+      const raw =
+        await response.text();
 
       console.error(
-        "Server mengembalikan non-JSON:",
-        html
+        "Backend returned:",
+        raw
       );
 
       throw new Error(
-        "Backend tidak mengembalikan JSON. " +
-        "Periksa URL Vercel dan endpoint /api/chat."
+        "Backend tidak mengembalikan JSON."
       );
     }
 
@@ -208,9 +265,8 @@ async function sendMessage(text) {
 
       throw new Error(
         data.error ||
-        `Request gagal dengan status ${response.status}.`
+        `HTTP ${response.status}`
       );
-
     }
 
 
@@ -220,15 +276,17 @@ async function sendMessage(text) {
     ) {
 
       throw new Error(
-        "Backend tidak mengirim jawaban AI yang valid."
+        "Jawaban AI tidak valid."
       );
-
     }
 
 
     removeLoading();
 
-    addAIMessage(data.text);
+
+    addAIMessage(
+      data.text
+    );
 
 
     conversation.push({
@@ -241,8 +299,9 @@ async function sendMessage(text) {
 
     removeLoading();
 
+
     console.error(
-      "After 1.0 Error:",
+      "After 1.0:",
       error
     );
 
@@ -260,7 +319,6 @@ async function sendMessage(text) {
     sendBtn.disabled = false;
 
     messageInput.focus();
-
   }
 }
 
@@ -274,7 +332,6 @@ chatForm.addEventListener(
     sendMessage(
       messageInput.value
     );
-
   }
 );
 
@@ -291,9 +348,7 @@ messageInput.addEventListener(
       event.preventDefault();
 
       chatForm.requestSubmit();
-
     }
-
   }
 );
 
@@ -308,10 +363,8 @@ suggestions.forEach(
         sendMessage(
           button.dataset.prompt
         );
-
       }
     );
-
   }
 );
 
@@ -331,7 +384,6 @@ function newChat() {
   resizeTextarea();
 
   messageInput.focus();
-
 }
 
 
@@ -339,7 +391,6 @@ clearBtn.addEventListener(
   "click",
   newChat
 );
-
 
 newChatBtn.addEventListener(
   "click",
