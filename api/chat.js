@@ -1,14 +1,5 @@
-export default async function handler(req, res) {
-  // PAKSA header CORS langsung keluar di awal baris execution
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
-  res.setHeader(
-    'Access-Control-Allow-Headers',
-    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization'
-  );
-
-  // Tangani Preflight OPTIONS
+module.exports = async (req, res) => {
+  // Tangani Preflight OPTIONS dari browser
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
@@ -24,7 +15,9 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'GEMINI_API_KEY belum dipasang di Vercel.' });
     }
 
-    const { messages } = req.body || {};
+    // Parsing body request
+    const body = typeof req.body === 'string' ? JSON.parse(req.body) : (req.body || {});
+    const { messages } = body;
 
     if (!Array.isArray(messages) || messages.length === 0) {
       return res.status(400).json({ error: 'Messages tidak valid.' });
@@ -45,7 +38,6 @@ export default async function handler(req, res) {
       parts: [{ text: message.text.trim() }]
     }));
 
-    // Gunakan gemini-2.5-flash (Model paling stabil saat ini)
     const geminiResponse = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent`,
       {
@@ -54,9 +46,7 @@ export default async function handler(req, res) {
           'Content-Type': 'application/json',
           'x-goog-api-key': apiKey
         },
-        body: JSON.stringify({
-          contents
-        })
+        body: JSON.stringify({ contents })
       }
     );
 
@@ -75,4 +65,4 @@ export default async function handler(req, res) {
   } catch (error) {
     return res.status(500).json({ error: error?.message || 'Server Internal Error' });
   }
-}
+};
