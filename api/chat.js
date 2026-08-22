@@ -1,20 +1,11 @@
 const MODEL = "gemini-2.5-flash";
 
 export default async function handler(req, res) {
-  //  res.setHeader("Access-Control-Allow-Credentials", "true");
-  res.setHeader("Access-Control-Allow-Origin", "*"); // Mengizinkan semua domain
-  res.setHeader("Access-Control-Allow-Methods", "GET,OPTIONS,PATCH,DELETE,POST,PUT");
-  res.setHeader(
-    "Access-Control-Allow-Headers",
-    "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization"
-  );
-
-  // 2. Langsung hentikan proses jika ini request OPTIONS (Preflight)
+  // Langsung balas 200 OK untuk PREFLIGHT request dari browser
   if (req.method === "OPTIONS") {
     return res.status(200).end();
   }
 
-  // 3. Validasi Method
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed." });
   }
@@ -42,6 +33,10 @@ export default async function handler(req, res) {
       )
       .slice(-30);
 
+    if (safeMessages.length === 0) {
+      return res.status(400).json({ error: "Tidak ada pesan yang valid." });
+    }
+
     const contents = safeMessages.map((message) => ({
       role: message.role,
       parts: [{ text: message.text.trim() }]
@@ -57,11 +52,7 @@ export default async function handler(req, res) {
         },
         body: JSON.stringify({
           system_instruction: {
-            parts: [
-              {
-                text: "Kamu adalah After 1.0, AI assistant yang ramah, natural, dan membantu."
-              }
-            ]
+            parts: [{ text: "Kamu adalah After 1.0, AI assistant yang ramah dan jelas." }]
           },
           contents,
           generationConfig: { maxOutputTokens: 4096 }
