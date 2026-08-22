@@ -23,7 +23,13 @@
   <div class="app">
 
     <header class="topbar">
-      <button class="brand" id="newChatBtn" type="button">
+
+      <button
+        class="brand"
+        id="newChatBtn"
+        type="button"
+        aria-label="Percakapan baru"
+      >
         <div class="brand-icon">A</div>
 
         <div class="brand-info">
@@ -36,12 +42,14 @@
         class="menu-btn"
         id="clearBtn"
         type="button"
-        title="New chat"
+        aria-label="Percakapan baru"
+        title="Percakapan baru"
       >
         <span></span>
         <span></span>
         <span></span>
       </button>
+
     </header>
 
 
@@ -54,6 +62,7 @@
         <h1>How can I help you?</h1>
 
         <p>Ask After 1.0 anything.</p>
+
 
         <div class="suggestions">
 
@@ -71,6 +80,7 @@
             </span>
           </button>
 
+
           <button
             class="suggestion"
             type="button"
@@ -84,6 +94,7 @@
               Buatkan rencana belajar yang jelas
             </span>
           </button>
+
 
           <button
             class="suggestion"
@@ -100,6 +111,7 @@
           </button>
 
         </div>
+
       </section>
 
 
@@ -114,7 +126,10 @@
 
     <div class="composer-area">
 
-      <form class="composer" id="chatForm">
+      <form
+        class="composer"
+        id="chatForm"
+      >
 
         <textarea
           id="messageInput"
@@ -124,16 +139,18 @@
           spellcheck="true"
         ></textarea>
 
+
         <div class="composer-footer">
 
           <span class="composer-hint">
-            Enter untuk kirim
+            Enter untuk kirim · Shift + Enter untuk baris baru
           </span>
 
           <button
             class="send-btn"
             id="sendBtn"
             type="submit"
+            aria-label="Kirim"
           >
             ↑
           </button>
@@ -142,6 +159,7 @@
 
       </form>
 
+
       <p class="disclaimer">
         After 1.0 can make mistakes. Check important information.
       </p>
@@ -149,6 +167,7 @@
     </div>
 
   </div>
+
 
   <script src="./script.js"></script>
 
