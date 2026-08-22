@@ -1,100 +1,101 @@
-const https = require('https');
+export const config = {
+  runtime: 'edge',
+};
 
-module.exports = async (req, res) => {
-  // Selalu set header CORS di paling atas
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
-  res.setHeader(
-    'Access-Control-Allow-Headers',
-    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization'
-  );
+export default async function handler(req) {
+  // Direct CORS response Headers
+  const corsHeaders = {
+    'Access-Control-Allow-Credentials': 'true',
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET,OPTIONS,PATCH,DELETE,POST,PUT',
+    'Access-Control-Allow-Headers':
+      'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization',
+  };
 
-  // Tangani Preflight OPTIONS langsung return 200 OK
+  // Tangani Preflight OPTIONS dari browser
   if (req.method === 'OPTIONS') {
-    return res.status(200).end();
+    return new Response(null, {
+      status: 200,
+      headers: corsHeaders,
+    });
   }
 
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed.' });
+    return new Response(JSON.stringify({ error: 'Method not allowed.' }), {
+      status: 405,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 
   try {
     const apiKey = process.env.GEMINI_API_KEY;
 
     if (!apiKey) {
-      return res.status(500).json({ error: 'GEMINI_API_KEY belum dipasang di Vercel.' });
+      return new Response(
+        JSON.stringify({ error: 'GEMINI_API_KEY belum dipasang di Vercel.' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
-    const body = typeof req.body === 'string' ? JSON.parse(req.body) : (req.body || {});
+    const body = await req.json().catch(() => ({}));
     const { messages } = body;
 
     if (!Array.isArray(messages) || messages.length === 0) {
-      return res.status(400).json({ error: 'Messages tidak valid.' });
+      return new Response(
+        JSON.stringify({ error: 'Messages tidak valid.' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     const safeMessages = messages
       .filter(
-        (message) =>
-          message &&
-          (message.role === 'user' || message.role === 'model') &&
-          typeof message.text === 'string' &&
-          message.text.trim().length > 0
+        (m) =>
+          m &&
+          (m.role === 'user' || m.role === 'model') &&
+          typeof m.text === 'string' &&
+          m.text.trim().length > 0
       )
       .slice(-30);
 
-    const contents = safeMessages.map((message) => ({
-      role: message.role,
-      parts: [{ text: message.text.trim() }]
+    const contents = safeMessages.map((m) => ({
+      role: m.role,
+      parts: [{ text: m.text.trim() }],
     }));
 
-    const payload = JSON.stringify({ contents });
-
-    const options = {
-      hostname: 'generativelanguage.googleapis.com',
-      path: `/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Content-Length': Buffer.byteLength(payload)
+    const geminiResponse = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ contents }),
       }
-    };
+    );
 
-    const apiRequest = https.request(options, (apiRes) => {
-      let responseData = '';
+    const data = await geminiResponse.json();
 
-      apiRes.on('data', (chunk) => {
-        responseData += chunk;
-      });
-
-      apiRes.on('end', () => {
-        try {
-          const parsedData = JSON.parse(responseData);
-
-          if (apiRes.statusCode !== 200) {
-            return res.status(apiRes.statusCode).json({
-              error: parsedData?.error?.message || 'Gemini API gagal.'
-            });
-          }
-
-          const parts = parsedData?.candidates?.[0]?.content?.parts;
-          const text = Array.isArray(parts) ? parts.map((p) => p.text || '').join('').trim() : '';
-
-          return res.status(200).json({ text });
-        } catch (e) {
-          return res.status(500).json({ error: 'Gagal parse JSON dari Gemini.' });
+    if (!geminiResponse.ok) {
+      return new Response(
+        JSON.stringify({ error: data?.error?.message || 'Gemini API gagal.' }),
+        {
+          status: geminiResponse.status,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         }
-      });
+      );
+    }
+
+    const parts = data?.candidates?.[0]?.content?.parts;
+    const text = Array.isArray(parts) ? parts.map((p) => p.text || '').join('').trim() : '';
+
+    return new Response(JSON.stringify({ text }), {
+      status: 200,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
-
-    apiRequest.on('error', (err) => {
-      return res.status(500).json({ error: err.message || 'Request Error' });
-    });
-
-    apiRequest.write(payload);
-    apiRequest.end();
-
   } catch (error) {
-    return res.status(500).json({ error: error?.message || 'Server Internal Error' });
+    return new Response(
+      JSON.stringify({ error: error?.message || 'Server Internal Error' }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   }
-};
+}
