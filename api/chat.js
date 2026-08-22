@@ -1,44 +1,60 @@
-module.exports = async (req, res) => {
-  // Set CORS headers
+module.exports = (req, res) => {
+  // Set Header CORS
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+  res.setHeader(
+    'Access-Control-Allow-Headers',
+    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization'
+  );
 
-  // Handle Preflight OPTIONS
+  // Tangani OPTIONS
   if (req.method === 'OPTIONS') {
-    res.writeHead(200);
+    if (typeof res.status === 'function') {
+      return res.status(200).end();
+    }
+    res.statusCode = 200;
     return res.end();
   }
 
   if (req.method !== 'POST') {
-    res.writeHead(405, { 'Content-Type': 'application/json' });
+    if (typeof res.status === 'function') {
+      return res.status(405).json({ error: 'Method not allowed.' });
+    }
+    res.statusCode = 405;
+    res.setHeader('Content-Type', 'application/json');
     return res.end(JSON.stringify({ error: 'Method not allowed.' }));
   }
+
+  const sendResponse = (statusCode, payload) => {
+    if (typeof res.status === 'function') {
+      return res.status(statusCode).json(payload);
+    }
+    res.statusCode = statusCode;
+    res.setHeader('Content-Type', 'application/json');
+    return res.end(JSON.stringify(payload));
+  };
 
   try {
     const apiKey = process.env.GEMINI_API_KEY;
 
     if (!apiKey) {
-      res.writeHead(500, { 'Content-Type': 'application/json' });
-      return res.end(JSON.stringify({ error: 'GEMINI_API_KEY belum dipasang di Vercel.' }));
+      return sendResponse(500, { error: 'GEMINI_API_KEY belum dipasang di Vercel.' });
     }
 
-    // Read body buffer/string safely
     let body = req.body;
     if (typeof body === 'string') {
       try {
         body = JSON.parse(body);
       } catch (e) {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        return res.end(JSON.stringify({ error: 'JSON body tidak valid.' }));
+        return sendResponse(400, { error: 'Body JSON tidak valid.' });
       }
     }
 
     const { messages } = body || {};
 
     if (!Array.isArray(messages) || messages.length === 0) {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      return res.end(JSON.stringify({ error: 'Messages tidak valid.' }));
+      return sendResponse(400, { error: 'Messages tidak valid.' });
     }
 
     const safeMessages = messages
@@ -56,31 +72,32 @@ module.exports = async (req, res) => {
       parts: [{ text: m.text.trim() }]
     }));
 
-    const geminiResponse = await fetch(
+    fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
       {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ contents })
       }
-    );
+    )
+      .then((geminiRes) => geminiRes.json().then((data) => ({ status: geminiRes.status, ok: geminiRes.ok, data })))
+      .then(({ status, ok, data }) => {
+        if (!ok) {
+          return sendResponse(status || 500, {
+            error: data?.error?.message || 'Gemini API gagal.'
+          });
+        }
 
-    const data = await geminiResponse.json();
+        const parts = data?.candidates?.[0]?.content?.parts;
+        const text = Array.isArray(parts) ? parts.map((p) => p.text || '').join('').trim() : '';
 
-    if (!geminiResponse.ok) {
-      res.writeHead(geminiResponse.status || 500, { 'Content-Type': 'application/json' });
-      return res.end(JSON.stringify({ error: data?.error?.message || 'Gemini API gagal.' }));
-    }
+        return sendResponse(200, { text });
+      })
+      .catch((err) => {
+        return sendResponse(500, { error: err.message || 'Fetch Gemini Error' });
+      });
 
-    const parts = data?.candidates?.[0]?.content?.parts;
-    const text = Array.isArray(parts) ? parts.map((p) => p.text || '').join('').trim() : '';
-
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    return res.end(JSON.stringify({ text }));
   } catch (error) {
-    res.writeHead(500, { 'Content-Type': 'application/json' });
-    return res.end(JSON.stringify({ error: error?.message || 'Server Internal Error' }));
+    return sendResponse(500, { error: error?.message || 'Server Internal Error' });
   }
 };
