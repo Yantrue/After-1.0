@@ -1,1 +1,151 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#f7f6f2">
 
+  <title>After 1.0</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+  <div class="app">
+
+    <header class="topbar">
+      <button class="brand" id="newChatBtn">
+        <div class="brand-icon">A</div>
+
+        <div class="brand-info">
+          <span class="brand-name">After 1.0</span>
+          <span class="brand-status">AI Assistant</span>
+        </div>
+      </button>
+
+      <button class="menu-btn" id="clearBtn" title="Percakapan baru">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </header>
+
+
+    <main class="chat-container">
+
+      <section class="welcome" id="welcome">
+
+        <div class="welcome-icon">
+          A
+        </div>
+
+        <h1>
+          How can I help you?
+        </h1>
+
+        <p>
+          Ask After 1.0 anything.
+        </p>
+
+        <div class="suggestions">
+
+          <button
+            class="suggestion"
+            data-prompt="Jelaskan sesuatu yang kompleks dengan bahasa sederhana."
+          >
+            <span class="suggestion-title">
+              Jelaskan sesuatu
+            </span>
+
+            <span class="suggestion-text">
+              Ubah topik sulit menjadi mudah dipahami
+            </span>
+          </button>
+
+
+          <button
+            class="suggestion"
+            data-prompt="Bantu saya membuat program belajar JavaScript dari dasar."
+          >
+            <span class="suggestion-title">
+              Bantu belajar
+            </span>
+
+            <span class="suggestion-text">
+              Buatkan rencana belajar yang jelas
+            </span>
+          </button>
+
+
+          <button
+            class="suggestion"
+            data-prompt="Bantu saya memperbaiki kode JavaScript yang bermasalah."
+          >
+            <span class="suggestion-title">
+              Bantu coding
+            </span>
+
+            <span class="suggestion-text">
+              Cari bug dan jelaskan cara memperbaikinya
+            </span>
+          </button>
+
+        </div>
+
+      </section>
+
+
+      <section class="messages" id="messages"></section>
+
+    </main>
+
+
+    <div class="composer-area">
+
+      <form class="composer" id="chatForm">
+
+        <textarea
+          id="messageInput"
+          placeholder="Message After 1.0..."
+          rows="1"
+        ></textarea>
+
+
+        <div class="composer-footer">
+
+          <span class="composer-hint">
+            Enter untuk kirim
+          </span>
+
+          <button
+            class="send-btn"
+            id="sendBtn"
+            type="submit"
+            title="Kirim"
+          >
+            ↑
+          </button>
+
+        </div>
+
+      </form>
+
+
+      <p class="disclaimer">
+        After 1.0 can make mistakes. Check important information.
+      </p>
+
+    </div>
+
+  </div>
+
+
+  <script src="app.js"></script>
+
+</body>
+</html>
