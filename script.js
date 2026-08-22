@@ -5,18 +5,25 @@ const messages = document.getElementById("messages");
 const welcome = document.getElementById("welcome");
 
 const sendBtn = document.getElementById("sendBtn");
-
 const clearBtn = document.getElementById("clearBtn");
 const newChatBtn = document.getElementById("newChatBtn");
 
 const suggestions = document.querySelectorAll(".suggestion");
 
-
 let conversation = [];
 let isSending = false;
 
 
-/* TEXTAREA */
+/*
+  GANTI URL DI BAWAH DENGAN URL VERCEL KAMU.
+
+  Contoh:
+  https://after-1-0.vercel.app/api/chat
+*/
+
+const API_URL =
+  "https://after-1-0.vercel.app/api/chat";
+
 
 function resizeTextarea() {
   messageInput.style.height = "auto";
@@ -25,8 +32,6 @@ function resizeTextarea() {
     Math.min(messageInput.scrollHeight, 180) + "px";
 }
 
-
-/* SCROLL */
 
 function scrollToBottom() {
   requestAnimationFrame(() => {
@@ -37,8 +42,6 @@ function scrollToBottom() {
   });
 }
 
-
-/* USER MESSAGE */
 
 function addUserMessage(text) {
   const message = document.createElement("div");
@@ -56,8 +59,6 @@ function addUserMessage(text) {
 }
 
 
-/* AI MESSAGE */
-
 function addAIMessage(text) {
   const message = document.createElement("div");
   message.className = "message ai";
@@ -68,6 +69,7 @@ function addAIMessage(text) {
 
   const content = document.createElement("div");
   content.className = "message-content";
+
   content.textContent = text;
 
   message.appendChild(avatar);
@@ -79,18 +81,19 @@ function addAIMessage(text) {
 }
 
 
-/* LOADING */
-
 function addLoading() {
   const message = document.createElement("div");
+
   message.className = "message ai";
   message.id = "loadingMessage";
 
   const avatar = document.createElement("div");
+
   avatar.className = "ai-avatar";
   avatar.textContent = "A";
 
   const content = document.createElement("div");
+
   content.className = "message-content";
 
   content.innerHTML = `
@@ -109,12 +112,16 @@ function addLoading() {
   scrollToBottom();
 }
 
+
 function removeLoading() {
-  document.getElementById("loadingMessage")?.remove();
+  const loading =
+    document.getElementById("loadingMessage");
+
+  if (loading) {
+    loading.remove();
+  }
 }
 
-
-/* SEND */
 
 async function sendMessage(text) {
   const clean = text.trim();
@@ -122,6 +129,18 @@ async function sendMessage(text) {
   if (!clean || isSending) {
     return;
   }
+
+  if (
+    API_URL.includes("NAMA-PROJECT-KAMU")
+  ) {
+    addAIMessage(
+      "API belum dikonfigurasi.\n\n" +
+      "Buka script.js lalu ganti API_URL dengan URL Vercel kamu."
+    );
+
+    return;
+  }
+
 
   isSending = true;
   sendBtn.disabled = true;
@@ -136,98 +155,166 @@ async function sendMessage(text) {
   });
 
   messageInput.value = "";
+
   resizeTextarea();
 
   addLoading();
 
+
   try {
-    const response = await fetch("./api/chat", {
-      method: "POST",
 
-      headers: {
-        "Content-Type": "application/json"
-      },
+    const response = await fetch(
+      API_URL,
+      {
+        method: "POST",
 
-      body: JSON.stringify({
-        messages: conversation
-      })
-    });
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
 
-    const data = await response.json();
+        body: JSON.stringify({
+          messages: conversation
+        })
+      }
+    );
 
-    if (!response.ok) {
+
+    const contentType =
+      response.headers.get("content-type") || "";
+
+
+    if (!contentType.includes("application/json")) {
+
+      const html = await response.text();
+
+      console.error(
+        "Server mengembalikan non-JSON:",
+        html
+      );
+
       throw new Error(
-        data.error || "Gagal mendapatkan jawaban."
+        "Backend tidak mengembalikan JSON. " +
+        "Periksa URL Vercel dan endpoint /api/chat."
       );
     }
+
+
+    const data =
+      await response.json();
+
+
+    if (!response.ok) {
+
+      throw new Error(
+        data.error ||
+        `Request gagal dengan status ${response.status}.`
+      );
+
+    }
+
+
+    if (
+      !data.text ||
+      typeof data.text !== "string"
+    ) {
+
+      throw new Error(
+        "Backend tidak mengirim jawaban AI yang valid."
+      );
+
+    }
+
 
     removeLoading();
 
     addAIMessage(data.text);
+
 
     conversation.push({
       role: "model",
       text: data.text
     });
 
+
   } catch (error) {
+
     removeLoading();
+
+    console.error(
+      "After 1.0 Error:",
+      error
+    );
+
 
     addAIMessage(
       "After 1.0 mengalami error.\n\n" +
       error.message
     );
 
+
   } finally {
+
     isSending = false;
+
     sendBtn.disabled = false;
 
     messageInput.focus();
+
   }
 }
 
 
-/* FORM */
+chatForm.addEventListener(
+  "submit",
+  (event) => {
 
-chatForm.addEventListener("submit", (event) => {
-  event.preventDefault();
-
-  sendMessage(messageInput.value);
-});
-
-
-/* ENTER */
-
-messageInput.addEventListener("keydown", (event) => {
-
-  if (
-    event.key === "Enter" &&
-    !event.shiftKey
-  ) {
     event.preventDefault();
 
-    chatForm.requestSubmit();
-  }
-
-});
-
-
-/* SUGGESTIONS */
-
-suggestions.forEach((button) => {
-
-  button.addEventListener("click", () => {
-
     sendMessage(
-      button.dataset.prompt
+      messageInput.value
     );
 
-  });
+  }
+);
 
-});
+
+messageInput.addEventListener(
+  "keydown",
+  (event) => {
+
+    if (
+      event.key === "Enter" &&
+      !event.shiftKey
+    ) {
+
+      event.preventDefault();
+
+      chatForm.requestSubmit();
+
+    }
+
+  }
+);
 
 
-/* NEW CHAT */
+suggestions.forEach(
+  (button) => {
+
+    button.addEventListener(
+      "click",
+      () => {
+
+        sendMessage(
+          button.dataset.prompt
+        );
+
+      }
+    );
+
+  }
+);
+
 
 function newChat() {
 
@@ -235,13 +322,16 @@ function newChat() {
 
   messages.innerHTML = "";
 
-  welcome.classList.remove("hidden");
+  welcome.classList.remove(
+    "hidden"
+  );
 
   messageInput.value = "";
 
   resizeTextarea();
 
   messageInput.focus();
+
 }
 
 
@@ -250,17 +340,17 @@ clearBtn.addEventListener(
   newChat
 );
 
+
 newChatBtn.addEventListener(
   "click",
   newChat
 );
 
 
-/* INIT */
-
 messageInput.addEventListener(
   "input",
   resizeTextarea
 );
+
 
 resizeTextarea();
